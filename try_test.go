@@ -8,7 +8,8 @@ import (
 
 func TestDo(t *testing.T) {
 	type args struct {
-		fn func(attempt int) error
+		fn         func(attempt int) error
+		maxRetries []int
 	}
 
 	tests := []struct {
@@ -30,6 +31,19 @@ func TestDo(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name: "should success with max retries set 1",
+			args: args{
+				fn: func(attempt int) error {
+					if attempt == 1 {
+						return nil
+					}
+					panic(try.ErrMaxRetriesReached)
+				},
+				maxRetries: []int{1},
+			},
+			wantErr: false,
+		},
+		{
 			name: "should failed exceeded retry limit",
 			args: args{
 				fn: func(attempt int) error {
@@ -39,12 +53,29 @@ func TestDo(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		{
+			name: "should failed exceeded retry limit with max retries set 4",
+			args: args{
+				fn: func(attempt int) error {
+					panic(try.ErrMaxRetriesReached)
+				},
+				maxRetries: []int{4},
+			},
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := try.Do(tt.args.fn); (err != nil) != tt.wantErr {
-				t.Errorf("Do() error = %v, wantErr %v", err, tt.wantErr)
+			if len(tt.args.maxRetries) > 0 {
+				if err := try.Do(tt.args.fn, tt.args.maxRetries...); (err != nil) != tt.wantErr {
+					t.Errorf("Do() error = %v, wantErr %v", err, tt.wantErr)
+				}
+			} else {
+				if err := try.Do(tt.args.fn); (err != nil) != tt.wantErr {
+					t.Errorf("Do() error = %v, wantErr %v", err, tt.wantErr)
+				}
 			}
+
 		})
 	}
 }

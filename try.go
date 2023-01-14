@@ -2,23 +2,28 @@ package try
 
 import (
 	"fmt"
-	"log"
 )
 
 // MaxRetries is the maximum number of retries
 var MaxRetries = 3
 
 // Do keep trying the function until max retry limit or no return error
-func Do(fn func(attempt int) error) error {
-	var err error
+func Do(fn func(attempt int) error, maxRetries ...int) error {
+	var (
+		err     error
+		attempt = 1
+		max     = MaxRetries
+	)
 
-	attempt := 1
+	if len(maxRetries) == 1 {
+		max = maxRetries[0]
+	}
+
 	for {
 		(func() {
 			defer func() {
 				if r := recover(); r != nil {
 					err = fmt.Errorf("panic: %v", r)
-					log.Println(err)
 				}
 			}()
 			err = fn(attempt)
@@ -28,7 +33,7 @@ func Do(fn func(attempt int) error) error {
 		}
 
 		attempt++
-		if attempt > MaxRetries {
+		if attempt > max {
 			return ErrMaxRetriesReached
 		}
 	}
