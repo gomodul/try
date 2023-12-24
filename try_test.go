@@ -44,12 +44,22 @@ func TestDo(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "should failed exceeded retry limit",
+			name: "should failed with panic exceeded retry limit",
 			args: args{
 				fn: func(attempt int) error {
 					try.MaxRetries = 0
 					panic(try.ErrMaxRetriesReached)
 				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "should failed with error something wrong",
+			args: args{
+				fn: func(attempt int) error {
+					return try.ErrSomethingWrong
+				},
+				maxRetries: []int{1},
 			},
 			wantErr: true,
 		},
